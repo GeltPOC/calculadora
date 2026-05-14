@@ -1,31 +1,24 @@
-# Calculadora Científica
+# Calculadora
 
-Calculadora científica completa construida con Next.js y Tailwind CSS.
+Calculadora web con modo oscuro (noche) y modo claro (día), construida con Next.js 15, TypeScript y Tailwind CSS.
 
-## Funciones disponibles
+## Características
 
-### Básicas
-- Suma, resta, multiplicación, división
-- Porcentaje, cambio de signo
+- ✅ Operaciones básicas: suma, resta, multiplicación, división
+- ✅ Porcentaje y cambio de signo
+- ✅ Borrado carácter a carácter (backspace)
+- ✅ Historial de expresión en pantalla
+- ✅ **Toggle día/noche** con transiciones suaves
+- ✅ Diseño responsivo inspirado en iOS
 
-### Científicas
-- Trigonometría: sin, cos, tan, asin, acos, atan
-- Logaritmos: log (base 10), ln (natural)
-- Raíz cuadrada (√), raíz cúbica (∛)
-- Potencia: xⁿ, x², 10ˣ, eˣ
-- Valor absoluto |x|
-- Factorial n!
-- Constantes: π, e
-- Inverso 1/x
-- Memoria: MC, MR, M+, M-
-- Modos: grados / radianes
-
-## Instalación
+## Desarrollo
 
 ```bash
 npm install
 npm run dev
 ```
+
+Abre [http://localhost:3000/calculadora](http://localhost:3000/calculadora)
 
 ## Producción
 
@@ -33,3 +26,13 @@ npm run dev
 npm run build
 npm start
 ```
+
+O con PM2:
+
+```bash
+pm2 start ecosystem.config.js
+```
+
+## Tema oscuro / claro
+
+El botón en la esquina superior derecha de la calculadora alterna entre **Modo Día** ☀️ y **Modo Noche** 🌙. El estado se mantiene en React state (no persiste entre recargas por diseño minimalista).

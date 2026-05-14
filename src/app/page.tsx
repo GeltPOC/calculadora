@@ -1,324 +1,253 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 
-type AngleMode = 'deg' | 'rad'
-
-function toRad(x: number, mode: AngleMode) {
-  return mode === 'deg' ? (x * Math.PI) / 180 : x
+type CalcState = {
+  display: string
+  expression: string
+  waitingForOperand: boolean
+  operator: string | null
+  prevValue: number | null
+  justCalculated: boolean
 }
 
-function factorial(n: number): number {
-  if (n < 0) return NaN
-  if (!Number.isInteger(n)) return NaN
-  if (n > 170) return Infinity
-  if (n === 0 || n === 1) return 1
-  let r = 1
-  for (let i = 2; i <= n; i++) r *= i
-  return r
+const initialState: CalcState = {
+  display: '0',
+  expression: '',
+  waitingForOperand: false,
+  operator: null,
+  prevValue: null,
+  justCalculated: false
 }
 
-function formatResult(n: number): string {
-  if (isNaN(n)) return 'Error'
-  if (!isFinite(n)) return n > 0 ? 'Infinito' : '-Infinito'
-  if (Math.abs(n) < 1e-10 && n !== 0) return n.toExponential(6)
-  if (Math.abs(n) >= 1e14) return n.toExponential(6)
-  const s = parseFloat(n.toPrecision(12)).toString()
-  return s
-}
+export default function CalculadoraPage() {
+  const [dark, setDark] = useState(false)
+  const [calc, setCalc] = useState<CalcState>(initialState)
 
-export default function Calculadora() {
-  const [display, setDisplay] = useState('0')
-  const [expression, setExpression] = useState('')
-  const [waitingForOperand, setWaitingForOperand] = useState(false)
-  const [operator, setOperator] = useState<string | null>(null)
-  const [prevValue, setPrevValue] = useState<number | null>(null)
-  const [memory, setMemory] = useState(0)
-  const [angleMode, setAngleMode] = useState<AngleMode>('deg')
-  const [isShift, setIsShift] = useState(false)
-  const [justCalculated, setJustCalculated] = useState(false)
-
-  const currentValue = parseFloat(display)
-
-  const inputDigit = useCallback((digit: string) => {
-    if (waitingForOperand || justCalculated) {
-      setDisplay(digit)
-      setWaitingForOperand(false)
-      setJustCalculated(false)
-    } else {
-      setDisplay(display === '0' ? digit : display + digit)
-    }
-  }, [display, waitingForOperand, justCalculated])
-
-  const inputDecimal = useCallback(() => {
-    if (waitingForOperand || justCalculated) {
-      setDisplay('0.')
-      setWaitingForOperand(false)
-      setJustCalculated(false)
-      return
-    }
-    if (!display.includes('.')) {
-      setDisplay(display + '.')
-    }
-  }, [display, waitingForOperand, justCalculated])
-
-  const clear = useCallback(() => {
-    setDisplay('0')
-    setExpression('')
-    setOperator(null)
-    setPrevValue(null)
-    setWaitingForOperand(false)
-    setJustCalculated(false)
-  }, [])
-
-  const clearEntry = useCallback(() => {
-    setDisplay('0')
-    setWaitingForOperand(false)
-  }, [])
-
-  const backspace = useCallback(() => {
-    if (waitingForOperand || justCalculated) return
-    if (display.length === 1 || (display.length === 2 && display.startsWith('-'))) {
-      setDisplay('0')
-    } else {
-      setDisplay(display.slice(0, -1))
-    }
-  }, [display, waitingForOperand, justCalculated])
-
-  const toggleSign = useCallback(() => {
-    const val = parseFloat(display)
-    setDisplay(formatResult(-val))
-  }, [display])
-
-  const percent = useCallback(() => {
-    const val = parseFloat(display)
-    if (prevValue !== null && operator) {
-      setDisplay(formatResult((prevValue * val) / 100))
-    } else {
-      setDisplay(formatResult(val / 100))
-    }
-    setJustCalculated(true)
-  }, [display, prevValue, operator])
-
-  const applyBinaryOp = useCallback((op: string) => {
-    const val = parseFloat(display)
-    if (prevValue !== null && operator && !waitingForOperand) {
-      let result = 0
-      switch (operator) {
-        case '+': result = prevValue + val; break
-        case '-': result = prevValue - val; break
-        case '×': result = prevValue * val; break
-        case '÷': result = val === 0 ? NaN : prevValue / val; break
-        case 'xⁿ': result = Math.pow(prevValue, val); break
-        case 'ⁿ√x': result = Math.pow(val, 1 / prevValue!); break
-        default: result = val
+  const handleDigit = useCallback((digit: string) => {
+    setCalc(prev => {
+      if (prev.waitingForOperand || prev.justCalculated) {
+        return {
+          ...prev,
+          display: digit,
+          waitingForOperand: false,
+          justCalculated: false
+        }
       }
-      const res = formatResult(result)
-      setPrevValue(result)
-      setDisplay(res)
-      setExpression(`${res} ${op}`)
-    } else {
-      setPrevValue(val)
-      setExpression(`${display} ${op}`)
-    }
-    setOperator(op)
-    setWaitingForOperand(true)
-    setJustCalculated(false)
-  }, [display, prevValue, operator, waitingForOperand])
-
-  const calculate = useCallback(() => {
-    const val = parseFloat(display)
-    if (prevValue === null || operator === null) return
-    let result = 0
-    switch (operator) {
-      case '+': result = prevValue + val; break
-      case '-': result = prevValue - val; break
-      case '×': result = prevValue * val; break
-      case '÷': result = val === 0 ? NaN : prevValue / val; break
-      case 'xⁿ': result = Math.pow(prevValue, val); break
-      case 'ⁿ√x': result = Math.pow(val, 1 / prevValue); break
-      default: result = val
-    }
-    const res = formatResult(result)
-    setExpression(`${prevValue} ${operator} ${val} =`)
-    setDisplay(res)
-    setPrevValue(null)
-    setOperator(null)
-    setWaitingForOperand(false)
-    setJustCalculated(true)
-  }, [display, prevValue, operator])
-
-  const applyUnary = useCallback((fn: string) => {
-    const val = parseFloat(display)
-    let result: number
-    switch (fn) {
-      case 'sin':  result = Math.sin(toRad(val, angleMode)); break
-      case 'cos':  result = Math.cos(toRad(val, angleMode)); break
-      case 'tan':  result = Math.tan(toRad(val, angleMode)); break
-      case 'asin': result = angleMode === 'deg' ? Math.asin(val) * 180 / Math.PI : Math.asin(val); break
-      case 'acos': result = angleMode === 'deg' ? Math.acos(val) * 180 / Math.PI : Math.acos(val); break
-      case 'atan': result = angleMode === 'deg' ? Math.atan(val) * 180 / Math.PI : Math.atan(val); break
-      case 'log':  result = Math.log10(val); break
-      case 'ln':   result = Math.log(val); break
-      case 'sqrt': result = Math.sqrt(val); break
-      case 'cbrt': result = Math.cbrt(val); break
-      case 'x2':   result = val * val; break
-      case 'x3':   result = val * val * val; break
-      case '10x':  result = Math.pow(10, val); break
-      case 'ex':   result = Math.exp(val); break
-      case 'inv':  result = val === 0 ? NaN : 1 / val; break
-      case 'abs':  result = Math.abs(val); break
-      case 'fact': result = factorial(val); break
-      case 'neg':  result = -val; break
-      default: result = val
-    }
-    const res = formatResult(result)
-    setExpression(`${fn}(${display})`)
-    setDisplay(res)
-    setJustCalculated(true)
-    setWaitingForOperand(false)
-  }, [display, angleMode])
-
-  const inputConstant = useCallback((c: string) => {
-    const val = c === 'π' ? Math.PI : Math.E
-    setDisplay(formatResult(val))
-    setWaitingForOperand(false)
-    setJustCalculated(true)
+      const newDisplay = prev.display === '0' ? digit : prev.display + digit
+      return { ...prev, display: newDisplay }
+    })
   }, [])
 
-  // Memory
-  const memClear = () => setMemory(0)
-  const memRecall = () => { setDisplay(formatResult(memory)); setJustCalculated(true) }
-  const memAdd = () => setMemory(memory + currentValue)
-  const memSub = () => setMemory(memory - currentValue)
-  const memStore = () => setMemory(currentValue)
+  const handleDecimal = useCallback(() => {
+    setCalc(prev => {
+      if (prev.waitingForOperand || prev.justCalculated) {
+        return { ...prev, display: '0.', waitingForOperand: false, justCalculated: false }
+      }
+      if (prev.display.includes('.')) return prev
+      return { ...prev, display: prev.display + '.' }
+    })
+  }, [])
 
-  // Keyboard support
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key >= '0' && e.key <= '9') inputDigit(e.key)
-      else if (e.key === '.') inputDecimal()
-      else if (e.key === '+') applyBinaryOp('+')
-      else if (e.key === '-') applyBinaryOp('-')
-      else if (e.key === '*') applyBinaryOp('×')
-      else if (e.key === '/') { e.preventDefault(); applyBinaryOp('÷') }
-      else if (e.key === 'Enter' || e.key === '=') calculate()
-      else if (e.key === 'Backspace') backspace()
-      else if (e.key === 'Escape') clear()
-      else if (e.key === '%') percent()
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [inputDigit, inputDecimal, applyBinaryOp, calculate, backspace, clear, percent])
+  const handleOperator = useCallback((op: string) => {
+    setCalc(prev => {
+      const current = parseFloat(prev.display)
+      if (prev.prevValue !== null && !prev.waitingForOperand && !prev.justCalculated) {
+        const result = compute(prev.prevValue, current, prev.operator!)
+        const resultStr = formatResult(result)
+        return {
+          display: resultStr,
+          expression: `${resultStr} ${op}`,
+          operator: op,
+          prevValue: result,
+          waitingForOperand: true,
+          justCalculated: false
+        }
+      }
+      return {
+        ...prev,
+        expression: `${prev.display} ${op}`,
+        operator: op,
+        prevValue: current,
+        waitingForOperand: true,
+        justCalculated: false
+      }
+    })
+  }, [])
 
-  const Btn = ({ label, onClick, cls, wide }: { label: string; onClick: () => void; cls?: string; wide?: boolean }) => (
-    <button
-      onClick={onClick}
-      className={`${cls ?? 'btn-num'} ${wide ? 'col-span-2' : ''} w-full`}
-    >
-      {label}
-    </button>
-  )
+  const handleEquals = useCallback(() => {
+    setCalc(prev => {
+      if (prev.operator === null || prev.prevValue === null) return prev
+      const current = parseFloat(prev.display)
+      const result = compute(prev.prevValue, current, prev.operator)
+      const resultStr = formatResult(result)
+      return {
+        display: resultStr,
+        expression: `${prev.expression} ${prev.display} =`,
+        operator: null,
+        prevValue: null,
+        waitingForOperand: false,
+        justCalculated: true
+      }
+    })
+  }, [])
+
+  const handleClear = useCallback(() => {
+    setCalc(initialState)
+  }, [])
+
+  const handlePlusMinus = useCallback(() => {
+    setCalc(prev => {
+      const val = parseFloat(prev.display) * -1
+      return { ...prev, display: formatResult(val) }
+    })
+  }, [])
+
+  const handlePercent = useCallback(() => {
+    setCalc(prev => {
+      const val = parseFloat(prev.display) / 100
+      return { ...prev, display: formatResult(val) }
+    })
+  }, [])
+
+  const handleBackspace = useCallback(() => {
+    setCalc(prev => {
+      if (prev.justCalculated) return initialState
+      if (prev.display.length <= 1) return { ...prev, display: '0' }
+      return { ...prev, display: prev.display.slice(0, -1) }
+    })
+  }, [])
+
+  // Theme classes
+  const bg = dark ? 'bg-gray-950' : 'bg-gray-100'
+  const calcBg = dark ? 'bg-gray-900' : 'bg-white'
+  const displayBg = dark ? 'bg-gray-800' : 'bg-gray-50'
+  const displayText = dark ? 'text-white' : 'text-gray-900'
+  const exprText = dark ? 'text-gray-400' : 'text-gray-500'
+  const shadowClass = dark ? 'shadow-2xl shadow-black/60' : 'shadow-2xl shadow-gray-300'
+
+  // Button variant classes
+  const btnOperator = dark
+    ? 'bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white'
+    : 'bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-white'
+  const btnFunction = dark
+    ? 'bg-gray-600 hover:bg-gray-500 active:bg-gray-700 text-white'
+    : 'bg-gray-300 hover:bg-gray-200 active:bg-gray-400 text-gray-900'
+  const btnNumber = dark
+    ? 'bg-gray-700 hover:bg-gray-600 active:bg-gray-800 text-white'
+    : 'bg-gray-200 hover:bg-gray-100 active:bg-gray-300 text-gray-900'
+  const btnEquals = dark
+    ? 'bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white'
+    : 'bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-white'
+
+  const btnBase = 'rounded-2xl text-xl font-semibold transition-all duration-150 select-none cursor-pointer flex items-center justify-center h-16 w-full active:scale-95'
+
+  const toggleBg = dark
+    ? 'bg-gray-700 hover:bg-gray-600 text-yellow-300'
+    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
 
   return (
-    <div className="w-full max-w-md" style={{ background: '#16213e', borderRadius: '1.5rem', padding: '1.25rem', boxShadow: '0 25px 60px rgba(0,0,0,0.6)' }}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-lg font-bold" style={{ color: '#e94560' }}>CALC<span style={{ color: '#7eb8f7' }}>SCI</span></span>
-        <div className="flex gap-1 items-center">
+    <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${bg}`}>
+      <div className={`w-80 rounded-3xl p-5 ${calcBg} ${shadowClass} transition-colors duration-300`}>
+        {/* Header with toggle */}
+        <div className="flex items-center justify-between mb-4">
+          <span className={`text-sm font-semibold tracking-widest uppercase ${dark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Calculadora
+          </span>
           <button
-            onClick={() => setAngleMode('deg')}
-            className={`btn-mode px-2 py-1 text-xs ${angleMode === 'deg' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
-          >DEG</button>
+            onClick={() => setDark(d => !d)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 ${toggleBg}`}
+            aria-label="Cambiar tema"
+          >
+            {dark ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" />
+                </svg>
+                <span>Día</span>
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clipRule="evenodd" />
+                </svg>
+                <span>Noche</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Display */}
+        <div className={`rounded-2xl p-4 mb-4 ${displayBg} transition-colors duration-300`}>
+          <div className={`text-right text-xs h-5 mb-1 truncate ${exprText}`}>
+            {calc.expression || '\u00A0'}
+          </div>
+          <div className={`text-right text-4xl font-light truncate ${displayText} transition-colors duration-300`}>
+            {calc.display.length > 12 ? parseFloat(calc.display).toExponential(4) : calc.display}
+          </div>
+        </div>
+
+        {/* Buttons grid */}
+        <div className="grid grid-cols-4 gap-3">
+          {/* Row 1 */}
+          <button onClick={handleClear} className={`${btnBase} ${btnFunction}`}>AC</button>
+          <button onClick={handlePlusMinus} className={`${btnBase} ${btnFunction}`}>+/-</button>
+          <button onClick={handlePercent} className={`${btnBase} ${btnFunction}`}>%</button>
+          <button onClick={() => handleOperator('÷')} className={`${btnBase} ${btnOperator}`}>÷</button>
+
+          {/* Row 2 */}
+          <button onClick={() => handleDigit('7')} className={`${btnBase} ${btnNumber}`}>7</button>
+          <button onClick={() => handleDigit('8')} className={`${btnBase} ${btnNumber}`}>8</button>
+          <button onClick={() => handleDigit('9')} className={`${btnBase} ${btnNumber}`}>9</button>
+          <button onClick={() => handleOperator('×')} className={`${btnBase} ${btnOperator}`}>×</button>
+
+          {/* Row 3 */}
+          <button onClick={() => handleDigit('4')} className={`${btnBase} ${btnNumber}`}>4</button>
+          <button onClick={() => handleDigit('5')} className={`${btnBase} ${btnNumber}`}>5</button>
+          <button onClick={() => handleDigit('6')} className={`${btnBase} ${btnNumber}`}>6</button>
+          <button onClick={() => handleOperator('−')} className={`${btnBase} ${btnOperator}`}>−</button>
+
+          {/* Row 4 */}
+          <button onClick={() => handleDigit('1')} className={`${btnBase} ${btnNumber}`}>1</button>
+          <button onClick={() => handleDigit('2')} className={`${btnBase} ${btnNumber}`}>2</button>
+          <button onClick={() => handleDigit('3')} className={`${btnBase} ${btnNumber}`}>3</button>
+          <button onClick={() => handleOperator('+')} className={`${btnBase} ${btnOperator}`}>+</button>
+
+          {/* Row 5 */}
           <button
-            onClick={() => setAngleMode('rad')}
-            className={`btn-mode px-2 py-1 text-xs ${angleMode === 'rad' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
-          >RAD</button>
-          <button
-            onClick={() => setIsShift(!isShift)}
-            className={`btn-mode px-2 py-1 text-xs ml-1 ${isShift ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-gray-300'}`}
-          >2ND</button>
+            onClick={() => handleDigit('0')}
+            className={`${btnBase} ${btnNumber} col-span-2 !justify-start pl-6`}
+          >0</button>
+          <button onClick={handleDecimal} className={`${btnBase} ${btnNumber}`}>.</button>
+          <button onClick={handleEquals} className={`${btnBase} ${btnEquals}`}>=</button>
+
+          {/* Row 6 - Backspace */}
+          <button onClick={handleBackspace} className={`${btnBase} ${btnFunction} col-span-4`}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75L14.25 12m0 0l2.25 2.25M14.25 12l2.25-2.25M14.25 12L12 14.25m-2.58 4.92l-6.375-6.375a1.125 1.125 0 010-1.59L9.42 4.83c.211-.211.498-.33.796-.33H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25h-9.284c-.298 0-.585-.119-.796-.33z" />
+            </svg>
+          </button>
         </div>
       </div>
-
-      {/* Display */}
-      <div style={{ background: '#0d1b35', borderRadius: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.75rem', border: '1px solid #1a3060' }}>
-        <div className="text-right text-xs min-h-4" style={{ color: '#7eb8f7', marginBottom: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {expression || '\u00a0'}
-        </div>
-        <div className="text-right font-bold leading-none" style={{ color: '#eaeaea', fontSize: display.length > 14 ? '1.1rem' : display.length > 10 ? '1.5rem' : '2rem', wordBreak: 'break-all' }}>
-          {display}
-        </div>
-        {memory !== 0 && (
-          <div className="text-right text-xs mt-1" style={{ color: '#6bcf7f' }}>M: {formatResult(memory)}</div>
-        )}
-      </div>
-
-      {/* Memory row */}
-      <div className="grid grid-cols-5 gap-1 mb-1">
-        <Btn label="MC" onClick={memClear} cls="btn-mem" />
-        <Btn label="MR" onClick={memRecall} cls="btn-mem" />
-        <Btn label="MS" onClick={memStore} cls="btn-mem" />
-        <Btn label="M+" onClick={memAdd} cls="btn-mem" />
-        <Btn label="M-" onClick={memSub} cls="btn-mem" />
-      </div>
-
-      {/* Scientific row 1 */}
-      <div className="grid grid-cols-5 gap-1 mb-1">
-        <Btn label={isShift ? 'asin' : 'sin'} onClick={() => applyUnary(isShift ? 'asin' : 'sin')} cls="btn-sci" />
-        <Btn label={isShift ? 'acos' : 'cos'} onClick={() => applyUnary(isShift ? 'acos' : 'cos')} cls="btn-sci" />
-        <Btn label={isShift ? 'atan' : 'tan'} onClick={() => applyUnary(isShift ? 'atan' : 'tan')} cls="btn-sci" />
-        <Btn label={isShift ? 'ln' : 'log'} onClick={() => applyUnary(isShift ? 'ln' : 'log')} cls="btn-sci" />
-        <Btn label={isShift ? 'eˣ' : '10ˣ'} onClick={() => applyUnary(isShift ? 'ex' : '10x')} cls="btn-sci" />
-      </div>
-
-      {/* Scientific row 2 */}
-      <div className="grid grid-cols-5 gap-1 mb-1">
-        <Btn label="x²" onClick={() => applyUnary('x2')} cls="btn-sci" />
-        <Btn label="x³" onClick={() => applyUnary('x3')} cls="btn-sci" />
-        <Btn label="xⁿ" onClick={() => applyBinaryOp('xⁿ')} cls="btn-sci" />
-        <Btn label="√" onClick={() => applyUnary('sqrt')} cls="btn-sci" />
-        <Btn label="∛" onClick={() => applyUnary('cbrt')} cls="btn-sci" />
-      </div>
-
-      {/* Scientific row 3 */}
-      <div className="grid grid-cols-5 gap-1 mb-1">
-        <Btn label="|x|" onClick={() => applyUnary('abs')} cls="btn-sci" />
-        <Btn label="n!" onClick={() => applyUnary('fact')} cls="btn-sci" />
-        <Btn label="1/x" onClick={() => applyUnary('inv')} cls="btn-sci" />
-        <Btn label="π" onClick={() => inputConstant('π')} cls="btn-sci" />
-        <Btn label="e" onClick={() => inputConstant('e')} cls="btn-sci" />
-      </div>
-
-      {/* Main grid */}
-      <div className="grid grid-cols-4 gap-1 mt-1">
-        <Btn label="AC" onClick={clear} cls="btn-clear" />
-        <Btn label="CE" onClick={clearEntry} cls="btn-clear" />
-        <Btn label="⌫" onClick={backspace} cls="btn-clear" />
-        <Btn label="÷" onClick={() => applyBinaryOp('÷')} cls="btn-op" />
-
-        <Btn label="7" onClick={() => inputDigit('7')} />
-        <Btn label="8" onClick={() => inputDigit('8')} />
-        <Btn label="9" onClick={() => inputDigit('9')} />
-        <Btn label="×" onClick={() => applyBinaryOp('×')} cls="btn-op" />
-
-        <Btn label="4" onClick={() => inputDigit('4')} />
-        <Btn label="5" onClick={() => inputDigit('5')} />
-        <Btn label="6" onClick={() => inputDigit('6')} />
-        <Btn label="−" onClick={() => applyBinaryOp('-')} cls="btn-op" />
-
-        <Btn label="1" onClick={() => inputDigit('1')} />
-        <Btn label="2" onClick={() => inputDigit('2')} />
-        <Btn label="3" onClick={() => inputDigit('3')} />
-        <Btn label="+" onClick={() => applyBinaryOp('+')} cls="btn-op" />
-
-        <Btn label="+/−" onClick={toggleSign} />
-        <Btn label="0" onClick={() => inputDigit('0')} />
-        <Btn label="." onClick={inputDecimal} />
-        <Btn label="=" onClick={calculate} cls="btn-eq" />
-      </div>
-
-      <div className="text-center mt-3 text-xs" style={{ color: '#444e6a' }}>Presiona 2ND para funciones inversas</div>
     </div>
   )
+}
+
+function compute(a: number, b: number, op: string): number {
+  switch (op) {
+    case '+': return a + b
+    case '−': return a - b
+    case '×': return a * b
+    case '÷': return b !== 0 ? a / b : 0
+    default: return b
+  }
+}
+
+function formatResult(val: number): string {
+  if (!isFinite(val)) return 'Error'
+  const str = String(val)
+  if (str.length > 12) {
+    return parseFloat(val.toPrecision(10)).toString()
+  }
+  return str
 }

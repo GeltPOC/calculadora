@@ -2,69 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg: #1a1a2e;
-  --surface: #16213e;
-  --surface2: #0f3460;
-  --accent: #e94560;
-  --text: #eaeaea;
-  --text-muted: #a0a0b0;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-body {
-  background-color: var(--bg);
-  color: var(--text);
-  font-family: 'Segoe UI', system-ui, sans-serif;
-}
-
-.btn-sci {
-  @apply text-xs font-semibold py-2 px-1 rounded-lg transition-all duration-150 active:scale-95 select-none;
-  background: #1e2a45;
-  color: #7eb8f7;
-  border: 1px solid #2a3a5c;
-}
-.btn-sci:hover { background: #263452; }
-
-.btn-num {
-  @apply text-base font-bold py-3 rounded-lg transition-all duration-150 active:scale-95 select-none;
-  background: #1e2a45;
-  color: #eaeaea;
-  border: 1px solid #2a3a5c;
-}
-.btn-num:hover { background: #263452; }
-
-.btn-op {
-  @apply text-base font-bold py-3 rounded-lg transition-all duration-150 active:scale-95 select-none;
-  background: #0f3460;
-  color: #7eb8f7;
-  border: 1px solid #1a4a80;
-}
-.btn-op:hover { background: #1a4a80; }
-
-.btn-eq {
-  @apply text-base font-bold py-3 rounded-lg transition-all duration-150 active:scale-95 select-none;
-  background: #e94560;
-  color: #fff;
-  border: 1px solid #c73050;
-}
-.btn-eq:hover { background: #c73050; }
-
-.btn-clear {
-  @apply text-base font-bold py-3 rounded-lg transition-all duration-150 active:scale-95 select-none;
-  background: #3a1a2e;
-  color: #ff6b8a;
-  border: 1px solid #5a2a4e;
-}
-.btn-clear:hover { background: #5a2a4e; }
-
-.btn-mem {
-  @apply text-xs font-semibold py-2 px-1 rounded-lg transition-all duration-150 active:scale-95 select-none;
-  background: #1a2e1a;
-  color: #6bcf7f;
-  border: 1px solid #2a4a2a;
-}
-.btn-mem:hover { background: #2a4a2a; }
-
-.btn-mode {
-  @apply text-xs font-semibold py-1 px-3 rounded-full transition-all duration-150 select-none;
+html, body {
+  height: 100%;
 }
