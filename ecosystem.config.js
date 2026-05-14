@@ -1,12 +1,1 @@
-module.exports = {
-  apps: [{
-    name: 'calculadora',
-    script: 'npm',
-    args: 'start',
-    cwd: '/home/gelt/apps/calculadora',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 3745,
-    },
-  }],
-}
+module.exports = { apps: [{ name: 'calculadora', script: 'npm start', env: { NODE_ENV: 'production', PORT: 3000 } }] }
